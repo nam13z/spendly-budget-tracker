@@ -1,0 +1,32 @@
+{
+  "name": "Spendly Product & Engineering Documentation Pack",
+  "version": "1.0",
+  "generated": "2026-11-15",
+  "documents": [
+    "AGENTS.md",
+    "README.md",
+    "docs/architecture/API_SPECIFICATION.md",
+    "docs/architecture/DATABASE_SCHEMA.md",
+    "docs/architecture/FINANCIAL_LOGIC.md",
+    "docs/architecture/SYSTEM_ARCHITECTURE.md",
+    "docs/decisions/ADR/0001-web-first-modular-monolith.md",
+    "docs/decisions/ADR/0002-manual-first-financial-data.md",
+    "docs/decisions/ADR/0003-transaction-allocation-separation.md",
+    "docs/decisions/ADR/0004-decimal-money.md",
+    "docs/design/ACCESSIBILITY.md",
+    "docs/design/ANIMATION_GUIDELINES.md",
+    "docs/design/DESIGN_SYSTEM.md",
+    "docs/engineering/CODING_STANDARDS.md",
+    "docs/engineering/CONTRIBUTING.md",
+    "docs/engineering/DEPLOYMENT.md",
+    "docs/engineering/GIT_WORKFLOW.md",
+    "docs/engineering/SECURITY.md",
+    "docs/engineering/TESTING_STRATEGY.md",
+    "docs/product/FEATURE_ROADMAP.md",
+    "docs/product/PRD.md",
+    "docs/product/PRODUCT_BLUEPRINT.md",
+    "docs/product/USER_FLOWS.md",
+    "docs/engineering/MASTER_AGENT_PROMPT.md"
+  ],
+  "note": "Foundation documentation; open decisions are explicitly marked."
+}

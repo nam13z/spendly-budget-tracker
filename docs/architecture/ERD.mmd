@@ -1,0 +1,319 @@
+# Spendly ERD — Mermaid source
+
+The ERD is split into bounded diagrams for readability. `||--o{` means one-to-many; `}o--o{` indicates many-to-many resolved by an associative entity.
+
+## 1. Identity, household and spaces
+
+```mermaid
+erDiagram
+    USERS ||--o{ SESSIONS : authenticates
+    USERS ||--|| USER_PREFERENCES : configures
+    USERS ||--o{ HOUSEHOLD_MEMBERSHIPS : joins
+    HOUSEHOLDS ||--o{ HOUSEHOLD_MEMBERSHIPS : contains
+    HOUSEHOLDS ||--o{ HOUSEHOLD_INVITATIONS : invites
+    USERS ||--o{ HOUSEHOLD_INVITATIONS : creates
+    USERS ||--o{ SPACES : owns_personal
+    HOUSEHOLDS ||--o{ SPACES : owns_shared
+
+    USERS {
+      uuid id PK
+      string email_normalized UK
+      string password_hash
+      string status
+      string primary_currency_code FK
+      string timezone
+    }
+    SESSIONS {
+      uuid id PK
+      uuid user_id FK
+      string token_hash UK
+      datetime expires_at
+      datetime revoked_at
+    }
+    USER_PREFERENCES {
+      uuid user_id PK,FK
+      string theme_key
+      string communication_style
+      string motion_level
+      json notification_preferences
+    }
+    HOUSEHOLDS {
+      uuid id PK
+      string name
+      uuid created_by_user_id FK
+      string status
+    }
+    HOUSEHOLD_MEMBERSHIPS {
+      uuid id PK
+      uuid household_id FK
+      uuid user_id FK
+      string role
+      string status
+    }
+    HOUSEHOLD_INVITATIONS {
+      uuid id PK
+      uuid household_id FK
+      uuid created_by_user_id FK
+      string token_hash UK
+      datetime expires_at
+      datetime revoked_at
+    }
+    SPACES {
+      uuid id PK
+      uuid owner_user_id FK
+      uuid household_id FK
+      string name
+      string type
+      string visibility_policy
+    }
+```
+
+**Invariant:** `SPACES.owner_user_id` XOR `SPACES.household_id` — exactly one must be non-null.
+
+## 2. Financial event, ledger and attribution
+
+```mermaid
+erDiagram
+    CURRENCIES ||--o{ ACCOUNTS : denominates
+    CURRENCIES ||--o{ FINANCIAL_TRANSACTIONS : denominates
+    USERS ||--o{ ACCOUNTS : owns_personal
+    HOUSEHOLDS ||--o{ ACCOUNTS : owns_shared
+    ACCOUNTS ||--o{ ACCOUNT_ENTRIES : receives
+    FINANCIAL_TRANSACTIONS ||--|{ ACCOUNT_ENTRIES : posts
+    FINANCIAL_TRANSACTIONS ||--o{ TRANSACTION_ALLOCATIONS : attributes
+    SPACES ||--o{ TRANSACTION_ALLOCATIONS : receives
+    CATEGORIES ||--o{ TRANSACTION_ALLOCATIONS : classifies
+    FINANCIAL_TRANSACTIONS ||--o| TRANSFER_DETAILS : describes_transfer
+    ACCOUNT_ENTRIES ||--o| TRANSFER_DETAILS : source_entry
+
+    CURRENCIES {
+      string code PK
+      string name
+      string symbol
+      int minor_unit_digits
+    }
+    ACCOUNTS {
+      uuid id PK
+      uuid owner_user_id FK
+      uuid household_id FK
+      string name
+      string type
+      string currency_code FK
+      boolean include_in_safe_to_spend
+      string status
+    }
+    CATEGORIES {
+      uuid id PK
+      uuid owner_user_id FK
+      uuid household_id FK
+      string name
+      string kind
+      boolean is_system_default
+    }
+    FINANCIAL_TRANSACTIONS {
+      uuid id PK
+      uuid created_by_user_id FK
+      string transaction_type
+      string status
+      decimal amount
+      string currency_code FK
+      datetime occurred_at
+      uuid original_transaction_id FK
+    }
+    ACCOUNT_ENTRIES {
+      uuid id PK
+      uuid transaction_id FK
+      uuid account_id FK
+      decimal amount_signed
+      string currency_code FK
+      string entry_role
+    }
+    TRANSACTION_ALLOCATIONS {
+      uuid id PK
+      uuid transaction_id FK
+      uuid space_id FK
+      uuid category_id FK
+      uuid beneficiary_user_id FK
+      decimal amount
+      uuid reverses_allocation_id FK
+    }
+    TRANSFER_DETAILS {
+      uuid transaction_id PK,FK
+      uuid source_account_entry_id FK
+      uuid destination_account_entry_id FK
+    }
+```
+
+The transfer details row references both source and destination entries; the diagram shows the source relation explicitly to avoid clutter. Both entry IDs are foreign keys and unique.
+
+## 3. Income forecasts and receipts
+
+```mermaid
+erDiagram
+    INCOME_SOURCES ||--o{ INCOME_SCHEDULES : defines
+    INCOME_SOURCES ||--o{ INCOME_OCCURRENCES : originates
+    INCOME_SCHEDULES ||--o{ INCOME_OCCURRENCES : forecasts
+    SPACES ||--o{ INCOME_SCHEDULES : scopes
+    SPACES ||--o{ INCOME_OCCURRENCES : scopes
+    INCOME_OCCURRENCES ||--o{ INCOME_RECEIPTS : reconciles
+    FINANCIAL_TRANSACTIONS ||--o{ INCOME_RECEIPTS : records_actual_receipt
+
+    INCOME_SOURCES {
+      uuid id PK
+      uuid owner_user_id FK
+      string name
+      string source_type
+      string status
+    }
+    INCOME_SCHEDULES {
+      uuid id PK
+      uuid income_source_id FK
+      uuid space_id FK
+      decimal expected_amount
+      string currency_code
+      string frequency_type
+      string recurrence_rule
+      date expected_next_date
+    }
+    INCOME_OCCURRENCES {
+      uuid id PK
+      uuid income_schedule_id FK
+      uuid income_source_id FK
+      uuid space_id FK
+      decimal expected_amount
+      string currency_code
+      date expected_date
+      string status
+    }
+    INCOME_RECEIPTS {
+      uuid id PK
+      uuid income_occurrence_id FK
+      uuid transaction_id FK
+      decimal received_amount
+      datetime received_at
+    }
+```
+
+Expected occurrences do not create account entries. Actual receipt transactions do.
+
+## 4. Budgets, commitments, goals and reserves
+
+```mermaid
+erDiagram
+    SPACES ||--o{ BUDGET_PLANS : owns
+    BUDGET_PLANS ||--o{ BUDGET_PERIODS : instantiates
+    BUDGET_PERIODS ||--o{ BUDGET_ALLOCATIONS : plans
+    CATEGORIES ||--o{ BUDGET_ALLOCATIONS : classifies
+    SPACES ||--o{ COMMITMENT_TEMPLATES : owns
+    COMMITMENT_TEMPLATES ||--o{ COMMITMENT_OCCURRENCES : generates
+    SPACES ||--o{ COMMITMENT_OCCURRENCES : scopes
+    COMMITMENT_OCCURRENCES ||--o{ COMMITMENT_PAYMENTS : paid_by
+    FINANCIAL_TRANSACTIONS ||--o{ COMMITMENT_PAYMENTS : actual_payment
+    SPACES ||--o{ GOALS : owns
+    GOALS ||--o{ GOAL_CONTRIBUTIONS : tracks
+    GOAL_CONTRIBUTIONS ||--o| FUND_RESERVATIONS : earmarks
+    ACCOUNTS ||--o{ FUND_RESERVATIONS : reserves_from
+    FINANCIAL_TRANSACTIONS ||--o{ GOAL_CONTRIBUTIONS : transfer_link
+
+    BUDGET_PLANS {
+      uuid id PK
+      uuid space_id FK
+      string name
+      string currency_code
+      string period_type
+      string status
+    }
+    BUDGET_PERIODS {
+      uuid id PK
+      uuid budget_plan_id FK
+      date period_start
+      date period_end
+      string status
+    }
+    BUDGET_ALLOCATIONS {
+      uuid id PK
+      uuid budget_period_id FK
+      uuid category_id FK
+      decimal planned_amount
+    }
+    COMMITMENT_TEMPLATES {
+      uuid id PK
+      uuid space_id FK
+      string name
+      decimal expected_amount
+      string currency_code
+      string recurrence_rule
+    }
+    COMMITMENT_OCCURRENCES {
+      uuid id PK
+      uuid commitment_template_id FK
+      uuid space_id FK
+      decimal expected_amount
+      string currency_code
+      date due_date
+      string status
+    }
+    COMMITMENT_PAYMENTS {
+      uuid id PK
+      uuid commitment_occurrence_id FK
+      uuid transaction_id FK
+      decimal applied_amount
+    }
+    GOALS {
+      uuid id PK
+      uuid space_id FK
+      string name
+      decimal target_amount
+      string currency_code
+      date target_date
+    }
+    GOAL_CONTRIBUTIONS {
+      uuid id PK
+      uuid goal_id FK
+      string contribution_type
+      decimal amount
+      uuid fund_reservation_id FK
+      uuid transfer_transaction_id FK
+    }
+    FUND_RESERVATIONS {
+      uuid id PK
+      uuid account_id FK
+      decimal amount
+      string currency_code
+      string reservation_type
+      string status
+    }
+```
+
+## 5. Reliability and history
+
+```mermaid
+erDiagram
+    USERS ||--o{ IDEMPOTENCY_RECORDS : submits
+    USERS ||--o{ AUDIT_EVENTS : acts
+    CURRENCIES ||--o{ FX_RATES : base_currency
+
+    IDEMPOTENCY_RECORDS {
+      uuid id PK
+      uuid user_id FK
+      string operation_scope
+      string idempotency_key
+      string request_hash
+    }
+    AUDIT_EVENTS {
+      uuid id PK
+      uuid actor_user_id FK
+      string action
+      string resource_type
+      uuid resource_id
+      datetime occurred_at
+    }
+    FX_RATES {
+      uuid id PK
+      string base_currency_code FK
+      string quote_currency_code FK
+      decimal rate
+      string rate_source
+      datetime rate_timestamp
+    }
+```

@@ -1,0 +1,3 @@
+Spendly Documentation Pack v1.1
+Updated database architecture integrated from Spendly_Database_Architecture_v1.1.
+Original product, design and engineering documents retained.
