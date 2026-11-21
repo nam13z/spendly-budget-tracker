@@ -5,7 +5,7 @@ FROM python:3.14.10-slim-bookworm
 COPY --from=node-runtime /usr/local/ /usr/local/
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends ca-certificates git passwd \
+    && apt-get install --yes --no-install-recommends ca-certificates git libatomic1 passwd \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 1000 vscode \
     && useradd --uid 1000 --gid vscode --create-home --shell /bin/bash vscode \

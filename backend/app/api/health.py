@@ -16,11 +16,11 @@ def liveness() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.get("/ready")
-def readiness() -> dict[str, str] | JSONResponse:
+@router.get("/ready", response_model=dict[str, str])
+def readiness() -> JSONResponse:
     """Report readiness only when the configured MySQL server responds."""
     try:
         check_database_connection()
     except (SQLAlchemyError, ValidationError):
         return JSONResponse(status_code=503, content={"status": "unavailable"})
-    return {"status": "ready"}
+    return JSONResponse(content={"status": "ready"})
