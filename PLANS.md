@@ -26,12 +26,13 @@ Codex must stop after each assigned milestone and wait for project owner approva
 
 ## Phase 1 — Technical foundation
 
-**Status: Current phase — not yet completed.**
+**Status: Codespaces migration implemented — verification incomplete pending Linux CI and first Codespace smoke checks.**
 
 - **Objective:** Create a minimal, runnable development foundation for the approved frontend, backend and local environment.
-- **Main implementation areas:** Next.js + TypeScript frontend skeleton; FastAPI backend skeleton; shared configuration conventions; Docker development foundation; CI workflows; baseline lint, type-check and test tooling.
-- **Expected deliverables:** Documented local setup; minimal health endpoints/pages as appropriate; reproducible development configuration; CI checks for frontend and backend.
-- **Verification and completion criteria:** A clean checkout can follow the documented setup; services start using the documented local workflow; lint, type checks and baseline tests pass; no secrets are required from source control.
+- **Main implementation areas:** Next.js + TypeScript frontend skeleton; FastAPI backend skeleton; shared configuration conventions; Linux GitHub Codespaces Dev Container; MySQL 8.4 Compose service; private application port forwarding; CI workflows; baseline lint, type-check and test tooling. Keep Windows Smart App Control enabled.
+- **Expected deliverables:** Documented Codespaces setup; minimal health endpoints/pages; reproducible development configuration; private browser access; CI checks for frontend and backend.
+- **Verification and completion criteria:** A clean branch checkout creates the Dev Container; Python/Node dependencies install on Linux; frontend/backend start in the workspace and connect to MySQL over the Compose network; private application port forwarding works; lint, type checks, tests and frontend production build pass; no real secrets are required from source control.
+- **Verification note (2026-11-21):** Native Windows Python dependency installation, syntax compilation and Ruff passed previously; local backend tests/startup remain blocked because Windows Application Control refused to load `pydantic-core`. Frontend clean install, ESLint, TypeScript and production build passed previously. The Codespaces/Docker configuration has not yet been built; Linux CI and all smoke checks in a real Codespace remain required before this phase is complete. Do not advance this milestone until they pass.
 
 ## Phase 2 — Database implementation
 

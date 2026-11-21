@@ -77,6 +77,8 @@ Do not interpret every idea in this pack as an MVP feature. Build the smallest c
 
 Never ask an AI coding agent to build the whole application in one prompt. Give it one bounded milestone, require a plan, inspect the diff, run tests, and only then merge.
 
-## Repository foundation status
+## Development setup
 
-The root [`PLANS.md`](PLANS.md) tracks the project-wide implementation milestones. The repository structure preserves the documentation hierarchy above and reserves `frontend/`, `backend/`, `infrastructure/docker/` and `.github/workflows/` for later implementation work. Current status: **project foundation**; application implementation has not started and the local environment is not configured.
+The supported backend and database workflow is [GitHub Codespaces](docs/engineering/CODESPACES.md). The Dev Container runs Python, Node.js and the application services in one Codespace, with private forwarded application ports. Windows local setup is retained as a legacy reference in [`docs/engineering/LOCAL_DEVELOPMENT_WINDOWS.md`](docs/engineering/LOCAL_DEVELOPMENT_WINDOWS.md). Deployment and production operations remain covered separately by [`docs/engineering/DEPLOYMENT.md`](docs/engineering/DEPLOYMENT.md).
+
+The root [`PLANS.md`](PLANS.md) tracks the project implementation milestones and approval gates.

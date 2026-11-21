@@ -9,7 +9,7 @@ Before implementation, read `AGENTS.md` and the relevant docs. The product is de
 - Backend: Python, FastAPI, Pydantic, SQLAlchemy 2.x, Alembic.
 - Database: MySQL 8.4 LTS.
 - Tests: Pytest backend; Vitest and Playwright frontend.
-- Local development: Docker Compose.
+- Local development: GitHub Codespaces with a Linux Dev Container and MySQL 8.4 on a private Compose network. Windows Smart App Control remains enabled; see `docs/engineering/CODESPACES.md`.
 
 ## Build strategy
 Use a modular monolith. Implement one milestone at a time. Do not generate the entire app in one pass.
