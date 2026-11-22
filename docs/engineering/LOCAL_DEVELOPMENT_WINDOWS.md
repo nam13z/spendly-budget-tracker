@@ -33,13 +33,12 @@ python -m pip install --upgrade pip
 python -m pip install -r backend\requirements.lock
 ```
 
-Start the API from the backend directory so the root `.env` is found explicitly through the configured path:
+Start the API from the backend directory. The backend resolves the repository-root `.env` from its configuration module, so the current working directory does not affect dotenv loading. Process environment variables continue to override `.env` values.
 
 ```powershell
 Set-Location backend
 $env:PYTHONPATH = (Get-Location).Path
-$env:ENV_FILE = (Resolve-Path ..\.env).Path
-uvicorn app.main:app --reload --env-file $env:ENV_FILE
+uvicorn app.main:app --reload
 ```
 
 The API is available at `http://127.0.0.1:8000`. `GET /health/live` checks that the process responds. `GET /health/ready` executes a read-only `SELECT 1` against MySQL and returns only a generic unavailable response if the connection fails.

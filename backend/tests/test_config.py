@@ -1,9 +1,26 @@
 """Tests for environment settings validation and URL construction."""
 
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import Settings
+from app.core.config import ENV_FILE, Settings
+
+
+def test_default_env_file_is_repository_root_path_independent_of_cwd(monkeypatch, tmp_path) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("DB_PASSWORD", "test-only-secret")
+    monkeypatch.setenv("DB_PORT", "3310")
+
+    settings = Settings()
+
+    assert ENV_FILE.is_absolute()
+    assert ENV_FILE.name == ".env"
+    assert ENV_FILE == Path(__file__).resolve().parents[2] / ".env"
+    assert Settings.model_config["env_file"] == ENV_FILE
+    assert settings.db_password.get_secret_value() == "test-only-secret"
+    assert settings.db_port == 3310
 
 
 def test_settings_load_database_values_from_environment(monkeypatch) -> None:
