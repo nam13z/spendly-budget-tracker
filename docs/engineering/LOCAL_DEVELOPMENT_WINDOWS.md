@@ -1,8 +1,8 @@
 # Native Windows Development
 
-> **Status:** Windows remains suitable for editing and frontend work, but the current Smart App Control policy blocks the compiled Pydantic Core extension required by FastAPI. Keep Smart App Control enabled and use [GitHub Codespaces](CODESPACES.md) for backend and database development.
+> **Status:** Native Windows development is supported with the existing Python environment. The owner verified the Phase 1 backend and frontend checks on Windows. Keep Smart App Control enabled; if this machine blocks a compiled dependency, use [GitHub Codespaces](CODESPACES.md) as the backend alternative.
 
-This legacy guide records the previous local Windows setup. It uses the existing Windows MySQL instance and must not be used to configure Codespaces. Never copy the Windows database password into a Codespace. Production and deployment guidance is separate in [DEPLOYMENT.md](DEPLOYMENT.md).
+This guide covers the native Windows setup and its existing local MySQL instance; do not use these credentials or settings to configure Codespaces. Never copy the Windows database password into a Codespace. Production and deployment guidance is separate in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Prerequisites
 
@@ -75,6 +75,16 @@ $env:NEXT_TELEMETRY_DISABLED = "1"
 npm run build
 ```
 
+## Database migrations
+
+From `backend/`, use the existing virtual environment to apply the schema to the configured local Spendly MySQL 8.4 database:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head
+```
+
+The initial migration creates 29 entities and seeds the supported `LKR` and `USD` currencies. FX rates remain excluded until their precision is approved. Confirm the configured host and database are the intended local Spendly target before applying migrations; do not point this command at the university database.
+
 ## Configuration reference
 
 | Variable | Default/template | Purpose |
@@ -98,4 +108,4 @@ The SQLAlchemy URL is built from individual validated fields, which safely handl
 - **npm or pip install fails:** check network/proxy access and the displayed package compatibility error. Keep lockfiles intact and resolve package version changes through review.
 - **Port is occupied:** identify the local process using port 8000 or 3000 and stop it, or use the framework's documented port option and update `BACKEND_URL` accordingly.
 
-This phase does not create schema, models, migrations or seed data. MySQL must already contain the `spendly` database and the application account must have permission to connect.
+MySQL must already contain the `spendly` database and the application account must have permission to connect. The initial migration creates application tables and reference currency rows; readiness checks remain read-only and do not apply migrations.

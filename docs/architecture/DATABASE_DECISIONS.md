@@ -87,8 +87,8 @@ Ordinary application operations must not destructively delete financial history.
 
 ## Remaining review gates
 
-Before migrations, define exact state transition rules for `ACTIVE`/`ARCHIVED` reusable records and `OPEN`/`CLOSED` budget periods. The remaining `income_sources.source_type` labels do not control permissions or financial treatment. Deferred Safe-to-Spend scope, complex goal/reservation behavior, retention/erasure, and FX conversion policy remain out of scope until separately approved.
+Exact transition rules for `ACTIVE`/`ARCHIVED` reusable records and `OPEN`/`CLOSED` budget periods must be defined before API implementation; the initial schema constrains allowed states but does not encode transition workflows. The remaining `income_sources.source_type` labels do not control permissions or financial treatment. Deferred Safe-to-Spend scope, complex goal/reservation behavior, retention/erasure, and FX conversion policy remain out of scope until separately approved.
 
 Implementation choices such as UUID type mechanics, FK update restriction, constraint naming, and index ordering are engineering decisions and do not require separate product approval. FX rate precision remains deferred; no cross-currency feature is implied.
 
-After approval, create MySQL DDL through Alembic migrations and test migrations against an empty database and an upgrade path. Do not let an AI coding agent invent these policies during implementation.
+Create MySQL DDL through reviewed Alembic migrations and test migrations against an empty database and an upgrade path where a safe target is available. Do not let an AI coding agent invent these policies during implementation.
