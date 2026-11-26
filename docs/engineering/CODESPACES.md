@@ -78,8 +78,8 @@ The Dev Container configuration marks both application ports private explicitly.
 
 ## Windows local development
 
-Windows 11 remains suitable for editing the repository and running the frontend. Smart App Control blocks the installed compiled Pydantic Core extension in the current Windows setup, so the FastAPI backend is not supported there. Keep Smart App Control enabled and use Codespaces for backend and MySQL development. Do not connect Codespaces to the Windows MySQL instance or copy its password into the Codespace.
+Native Windows backend and frontend verification has passed in the owner's environment. Keep Smart App Control enabled; use Codespaces when a local policy blocks a compiled dependency. Do not connect Codespaces to the Windows MySQL instance or copy its password into the Codespace.
 
-The previous native setup guide is retained for reference in [LOCAL_DEVELOPMENT_WINDOWS.md](LOCAL_DEVELOPMENT_WINDOWS.md). Its local MySQL settings are Windows-only; Codespaces overrides them with the internal MySQL service address and disposable development credentials.
+The native setup guide is in [LOCAL_DEVELOPMENT_WINDOWS.md](LOCAL_DEVELOPMENT_WINDOWS.md). Its local MySQL settings are Windows-only; Codespaces overrides them with the internal MySQL service address and disposable development credentials.
 
-This environment creates no application tables, models, migrations, or seed data. It is not a production deployment configuration.
+The database-foundation migration creates the application schema and seeds `LKR` and `USD` in the configured disposable Codespaces MySQL database. FX rates remain excluded until precision is approved. This is not a production deployment configuration.
