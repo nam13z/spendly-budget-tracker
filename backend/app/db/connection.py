@@ -41,3 +41,12 @@ def check_database_connection() -> None:
     """Run a minimal read-only statement to verify database availability."""
     with get_engine().connect() as connection:
         connection.execute(text("SELECT 1"))
+
+
+def dispose_database_engine() -> None:
+    """Close the shared connection pool and clear cached database factories."""
+    engine = get_engine() if get_engine.cache_info().currsize else None
+    get_session_factory.cache_clear()
+    get_engine.cache_clear()
+    if engine is not None:
+        engine.dispose()

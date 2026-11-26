@@ -46,7 +46,14 @@ Codex must stop after each assigned milestone and wait for project owner approva
 
 ## Phase 3 — Backend architecture
 
-**Status: Not started.**
+**Status: Phase 3A backend foundation implemented on `feature/backend-architecture`; Phase 3 remains in progress. Authentication, authorization workflows, and domain APIs are not included in this slice.**
+
+### Phase 3A — Backend foundation
+
+- **Objective:** Establish reusable application composition, database lifecycle, API error, logging and test boundaries before identity or financial workflows.
+- **Main implementation areas:** FastAPI app factory/lifespan; API/service/repository/database package boundaries; request-ID error envelopes; privacy-conscious structured request logs; isolated test fixtures.
+- **Completion record:** Existing health paths and MySQL configuration are retained; no ORM model, schema, migration, dependency, authentication flow or financial workflow was added. Focused tests cover settings, session/engine lifecycle, API errors, log redaction, health and existing database contracts. See the feature branch commit and verification report for exact results.
+- **Remaining Phase 3 scope:** API/domain modules, authentication/authorization foundations and protected-resource tests require their own approved slice.
 
 - **Objective:** Establish a modular FastAPI application with clear API, domain, persistence and security boundaries.
 - **Main implementation areas:** Application configuration; API versioning and error handling; Pydantic schemas; SQLAlchemy session lifecycle; authentication and authorization foundations; domain module boundaries.

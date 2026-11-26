@@ -62,7 +62,10 @@ backend/
   app/
     api/
       v1/
-    core/          # config, security, dependencies
+    schemas/       # Pydantic request/response contracts
+    services/      # use-case orchestration and domain rules
+    repositories/  # scoped persistence queries
+    core/          # config, error contracts, logging, security
     domains/
       identity/
       households/
@@ -80,6 +83,18 @@ backend/
 ```
 
 Use Pydantic for request/response schemas, SQLAlchemy 2.x for persistence, Alembic for migrations and Pytest for tests.
+
+### Backend dependency direction
+
+- API routers parse HTTP requests, apply request/response schemas, call services and translate results to HTTP responses. They do not issue ORM queries or own business rules.
+- Services coordinate one use case, enforce domain invariants and own explicit transaction boundaries. They do not depend on FastAPI types.
+- Repositories contain scoped SQLAlchemy reads and writes. They do not decide business policy or return HTTP responses.
+- `db` owns the engine, request-scoped session dependency, SQLAlchemy base/models and database-specific types. `core` owns validated configuration, cross-cutting errors and privacy-conscious logging.
+- Keep dependencies flowing `api -> services -> repositories -> db`; shared `core` support may be used at application composition boundaries. Add modules when a real use case needs them rather than creating speculative abstractions.
+
+The initial backend foundation may establish these package boundaries without adding financial or identity workflows. Operational health endpoints remain outside the versioned product API and may call a read-only database connectivity probe directly.
+
+Application request logs may contain a generated request ID, HTTP method, matched route template, status code and duration. Do not log raw paths, query strings, request/response bodies, credentials, SQL parameters, user identifiers or financial details. Error responses must omit rejected input values, exception text and stack traces.
 
 ## 5. Domain boundaries
 
