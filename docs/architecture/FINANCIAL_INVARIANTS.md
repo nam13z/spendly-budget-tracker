@@ -4,32 +4,36 @@ These invariants must be implemented in backend domain services and verified by 
 
 ## 1. Ledger invariants
 
-1. Transaction header `amount` is positive.
+1. Transaction header `amount` is positive and stored as MySQL `DECIMAL(19,4)`; map it as SQLAlchemy `Numeric(19, 4, asdecimal=True)` and use Python `Decimal`.
 2. Posted income/expense/refund/opening-balance/adjustment transactions have the required account entry or entries.
 3. Ordinary income has positive account effect; ordinary expense has negative account effect; refund has positive account effect; opening balance/adjustment sign depends on the correction.
 4. Same-currency transfer has exactly two entries: source negative X and destination positive X. Their sum is zero.
 5. Every account entry currency equals its account currency.
 6. Voided transactions contribute no balance. Draft transactions contribute no balance.
 7. Balance is derived from posted account entries. Cached balances must be rebuildable.
-8. Posted records cannot be silently mutated. For MVP edit/correction, void the original transaction (retain its entries for audit but exclude them from balances) and create a replacement in one atomic operation. Do not also post a second reversing entry for the same correction. A real refund is a separate posted refund transaction.
+8. Posted records cannot be silently mutated. Correction acts on a posted transaction and atomically marks it `VOIDED` and creates a new posted replacement whose `replaces_transaction_id` points to the original. The field is unique, so each transaction has at most one direct replacement and the correction chain is unambiguous. Original entries and allocations remain unchanged for audit and are excluded from balances and current reporting. A voided transaction cannot be edited or reposted; another correction creates a replacement of the currently posted replacement. No separate reversing transaction or entries are created by correction. A real refund/chargeback is a separate posted `REFUND` transaction linked to the original expense with `original_transaction_id`, and is not a correction.
 
 ## 2. Allocation invariants
 
 For a transaction amount `T`:
 
 - Each allocation amount is positive.
+- Monetary amounts use `DECIMAL(19,4)` in MySQL, `Numeric(19, 4, asdecimal=True)` in SQLAlchemy, Python `Decimal` for calculations, and decimal strings in API payloads. Never use binary floating-point arithmetic authoritatively.
+- Validate entered and posted amounts against the currency's `minor_unit_digits`. LKR and USD use two digits; reject excess fractional digits and do not silently round. Storage precision is four fractional digits; display formatting follows currency metadata. Currencies needing more than four digits require a reviewed storage change.
 - Allocation currency is inherited from the transaction and therefore cannot differ in MVP.
 - Sum of allocations must be less than or equal to `T`.
 - Unallocated remainder is `T - SUM(allocations)` and is visible.
 - Transfers have no normal income/expense allocations.
-- Refund allocations should reverse the original allocation(s); each refund allocation cannot exceed the original allocation's remaining refundable amount.
+- MVP refund allocations must explicitly link through `reverses_allocation_id` to the original allocation and preserve its space/category context. Do not calculate proportional allocation silently. Each refund allocation cannot exceed the original allocation's remaining refundable amount.
 
 A cross-row sum cannot be protected by a simple MySQL CHECK. Validate in a transaction with appropriate row locking so two concurrent requests cannot both exceed the original amount.
 
 ## 3. Budget invariants
 
 - Budget plans and allocations are plans, not cash balances.
-- A period has a defined timezone and inclusive/exclusive boundary policy.
+- Calculate periods in the relevant personal or household space timezone using local calendar boundaries; start is inclusive and end is exclusive. Store event timestamps in UTC.
+- Set a space's IANA timezone at creation from the owner's or household's choice. Snapshot the timezone on each budget period; later space timezone changes do not alter existing period dates or snapshots.
+- Reusable records use `ACTIVE`/`ARCHIVED`; budget periods use `OPEN`/`CLOSED`. Define exact transitions before API implementation.
 - Actual spend comes from eligible posted expense allocations minus linked refund allocations.
 - Transfers are excluded.
 - A bill payment is counted through its posted expense allocation once; the commitment payment link only reconciles the bill status.
@@ -41,16 +45,18 @@ A cross-row sum cannot be protected by a simple MySQL CHECK. Validate in a trans
 - A commitment occurrence is a forecast obligation, not an account entry.
 - A payment must link to a posted expense transaction, or an explicit action creates that transaction.
 - Partial payments are allowed.
-- Sum of applied payments cannot exceed the occurrence's expected amount unless a documented adjustment/overpayment workflow exists.
+- Sum of applied payments cannot exceed the occurrence's expected amount. Waiver/adjustment workflows are deferred unless required by initial bill-payment implementation; do not imply such a workflow without an approved schema.
 - Sum applied from a transaction cannot exceed the eligible expense amount.
-- Outstanding amount = expected amount - applied payments - approved waivers/adjustments.
-- Paid status is derived when outstanding amount reaches zero, unless an explicit state records cancellation/waiver.
+- Outstanding amount = expected amount - applied payments.
+- Paid status is derived when outstanding amount reaches zero; cancellation is represented by its documented occurrence status. Waivers/adjustments are deferred.
 
 ## 5. Income invariants
 
 - Expected income occurrences never affect account balances.
 - Actual receipts must link to posted income transactions in the same currency.
 - Partial receipts are supported.
+- Each receipt links to exactly one posted income transaction; each transaction links to at most one occurrence; an occurrence may have multiple partial receipts.
+- Reject cumulative receipts above an occurrence's expected amount until an adjustment policy is approved.
 - Received amount is derived from linked receipts; account balance is derived from the actual transaction's account entry.
 - A receipt reconciliation link must not create a second account entry.
 - Overpayment beyond expected amount requires an explicit policy, not silent truncation.
@@ -59,10 +65,10 @@ A cross-row sum cannot be protected by a simple MySQL CHECK. Validate in a trans
 
 - Goal contributions are not expenses.
 - An earmark creates/links to a reservation but no account entry.
-- A transfer contribution links to an actual transfer; account entries already represent the movement.
+- Actual movement between accounts is represented by a transfer. Transfer-linked goal progress is deferred.
 - A fund reservation is not a ledger entry.
 - Active reservations cannot exceed eligible funds in the relevant account/scope.
-- The same money cannot be reserved twice (e.g. once as a goal earmark and again as a manual reserve).
+- The same money cannot be reserved twice. Manual reserve and complex release semantics are deferred; MVP goal contributions are earmarks.
 - If money is moved to a dedicated savings account excluded from Safe-to-Spend, do not also subtract the same amount as a source-account reserve.
 
 ## 7. Safe-to-Spend baseline
@@ -72,7 +78,7 @@ Calculate separately for each selected currency and scope:
 `Safe-to-Spend = eligible posted account balances - unpaid commitments due within horizon - active fund reservations - safety buffer`
 
 Rules:
-- Only include accounts selected as eligible (`include_in_safe_to_spend = true`).
+- New accounts default to `include_in_safe_to_spend = false`; only include accounts selected as eligible (`true`).
 - Exclude voided/draft entries.
 - Subtract only the outstanding portion of commitments due within the selected horizon.
 - Do not subtract paid bills again.
@@ -89,7 +95,7 @@ This is a planning estimate, not a guarantee or financial advice.
 
 - Each account has one currency.
 - Each transaction and its account entries use the same currency in MVP.
-- LKR and USD totals remain separate unless a reporting conversion is explicitly requested.
+- LKR and USD each have `minor_unit_digits = 2`; totals remain separate. Conversion reporting and cross-currency transfers are deferred.
 - Cross-currency transfers are deferred until source/destination amounts, rate direction, rate source/time, fees, rounding and historical reporting rules are specified.
 - Original transaction values are never overwritten by converted display values.
 
@@ -107,18 +113,31 @@ This is a planning estimate, not a guarantee or financial advice.
 | 8 | LKR 4,000 bill paid by linked LKR 4,000 expense | Bill outstanding zero; spending counted once |
 | 9 | LKR 4,000 bill paid in two parts 1,500 and 2,500 | Outstanding 0; two payment links; two actual transactions/effects |
 | 10 | LKR 20,000 budget, eligible net spend LKR 7,500 | Remaining LKR 12,500 |
-| 11 | Goal earmark LKR 3,000 | Goal/reserve progress changes; account balance does not |
-| 12 | Transfer LKR 3,000 to excluded savings account and link to goal | Source/destination balances change; no duplicate expense or reserve deduction |
+| 11 | Goal earmark LKR 3,000 | Earmark/reservation changes; account balance does not |
+| 12 | Same-currency transfer LKR 3,000 to savings account | Source/destination balances change equally/oppositely; no expense is created |
 | 13 | LKR 1,000 and USD 1,000 balances | Display separately; never show combined 2,000 |
-| 14 | Void a posted expense | Balance and budget exclude it; audit trail remains |
+| 14 | Atomically correct a posted expense | Original is voided; entries/allocations remain for audit but are excluded from balance/reporting; one replacement effect counts; no reversing entry exists |
 | 15 | Retry create request with same idempotency key and same payload | No duplicate transaction |
 | 16 | Reuse idempotency key with a different payload | Conflict response; no mutation |
 | 17 | Household member guesses another member's personal account/transaction ID | Authorization denial; no private data leaked |
 | 18 | Two concurrent partial refunds attempt to exceed original refundable amount | Only valid amount succeeds; no over-refund |
 | 19 | Two concurrent allocations attempt to exceed transaction amount | At most valid total commits |
-| 20 | Personal account pays shared purchase; Home allocation exists | Household sees only allowed Home projection, not private account or Personal allocation |
+| 20 | Personal account pays a mixed Home/Personal purchase | Household view appears only after explicit creator consent and shows only approved Home projection fields |
+| 21 | Two sequential corrections | Each replacement points to its predecessor; unique link prevents multiple direct replacements; voided records cannot be reposted |
+| 22 | Retry a correction request with same idempotency key/payload | No duplicate replacement or ledger effect |
+| 23 | Enter LKR/USD with more than two fractional digits | Validation rejects; no rounding or write occurs |
+| 24 | Exercise the DECIMAL(19,4) four-decimal storage boundary | Database-type round-trip is exact; application currency validation separately rejects more than two digits for LKR/USD |
 
-## 10. Transactional write patterns
+## 10. Privacy and deletion invariants
+
+- Personal spaces remain private; household spaces are visible to active members. Transactions are private until explicitly shared by their creator. Mixed Home/Personal allocations require explicit consent.
+- Household projection allowlist: transaction ID, Home allocation amount and currency, transaction calendar date in the Home space timezone, description, and category display name. Omit transaction total, account identifiers/names/types/balances, personal allocations, beneficiary/private fields, notes, unrelated personal history, and the full transaction ORM object.
+- Only the creator may change sharing status; status and consent changes are audited. A shared transaction requires a Home allocation. Mixed Home/Personal allocations require creator consent before sharing. Any allocation change clears consent and atomically returns sharing to `PRIVATE` until fresh creator consent.
+- Household invitations grant `MEMBER` only; ownership transfer is a separate operation.
+- Sound defaults off. Reduced-motion preference initializes from the platform setting and supports explicit user override.
+- Ordinary application operations do not destructively delete financial history. Foreign keys restrict deletion; retention, erasure, backup, and legal policy remain deferred for separate approval.
+
+## 11. Transactional write patterns
 
 ### Create an expense
 1. Authenticate and authorize account and space/category.
@@ -141,9 +160,7 @@ This is a planning estimate, not a guarantee or financial advice.
 
 ### Correct a posted transaction
 1. Lock original transaction and entries.
-2. Mark original voided / create explicit reversal according to the chosen ledger policy.
-3. Create replacement transaction and entries.
-4. Preserve links and audit history.
-5. Commit all changes atomically.
-
-The exact choice between a `VOIDED` state and a separately posted reversing event must be finalized consistently. Do not mix both semantics in different endpoints.
+2. Mark original `VOIDED`; retain its entries and allocations unchanged.
+3. Create replacement as `POSTED`, set its unique `replaces_transaction_id` to the original, and insert new entries and allocations.
+4. Preserve correction-chain links and audit history; do not create a separate reversing event or entries.
+5. Commit all changes atomically. A later correction voids the current posted replacement and creates its next linked replacement.

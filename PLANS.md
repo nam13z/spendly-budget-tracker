@@ -26,22 +26,23 @@ Codex must stop after each assigned milestone and wait for project owner approva
 
 ## Phase 1 — Technical foundation
 
-**Status: Codespaces migration implemented — verification incomplete pending Linux CI and first Codespace smoke checks.**
+**Status: Complete — owner-confirmed Phase 1 verification.**
 
 - **Objective:** Create a minimal, runnable development foundation for the approved frontend, backend and local environment.
 - **Main implementation areas:** Next.js + TypeScript frontend skeleton; FastAPI backend skeleton; shared configuration conventions; Linux GitHub Codespaces Dev Container; MySQL 8.4 Compose service; private application port forwarding; CI workflows; baseline lint, type-check and test tooling. Keep Windows Smart App Control enabled.
 - **Expected deliverables:** Documented Codespaces setup; minimal health endpoints/pages; reproducible development configuration; private browser access; CI checks for frontend and backend.
 - **Verification and completion criteria:** A clean branch checkout creates the Dev Container; Python/Node dependencies install on Linux; frontend/backend start in the workspace and connect to MySQL over the Compose network; private application port forwarding works; lint, type checks, tests and frontend production build pass; no real secrets are required from source control.
-- **Verification note (2026-11-21):** Native Windows Python dependency installation, syntax compilation and Ruff passed previously; local backend tests/startup remain blocked because Windows Application Control refused to load `pydantic-core`. Frontend clean install, ESLint, TypeScript and production build passed previously. The Codespaces/Docker configuration has not yet been built; Linux CI and all smoke checks in a real Codespace remain required before this phase is complete. Do not advance this milestone until they pass.
+- **Verification record:** The project owner confirms Phase 1 is verified and working on `feature/native-windows-foundation`. Do not infer or claim specific Codespaces/Linux smoke checks beyond the verification actually reported by the owner.
 
 ## Phase 2 — Database implementation
 
-**Status: Not started.**
+**Status: Phase 2 database documentation decisions approved and recorded; exact reusable-record and budget-period state transitions remain a pre-API requirement. Database implementation not started.**
 
 - **Objective:** Turn the reviewed logical data model into safe, versioned MySQL schema changes.
-- **Main implementation areas:** Resolve schema review gates; SQLAlchemy 2.x mappings; Alembic configuration and initial migrations; constraints, indexes and synthetic development fixtures.
-- **Expected deliverables:** Approved schema decisions; reversible initial migration where practical; database setup and migration instructions; tests for constraints and migration behavior.
-- **Verification and completion criteria:** Migrations apply to a clean MySQL 8.4 database and upgrade path; key ownership, currency and financial constraints are tested; fixtures contain only synthetic data.
+- **Main implementation areas:** Apply owner-approved architecture amendments and complete/review the column-level contract; then SQLAlchemy 2.x mappings; Alembic configuration and initial migrations; constraints, indexes and synthetic development fixtures.
+- **Expected deliverables:** Approved schema decisions and complete 30-entity column contract; reversible initial migration where practical; database setup and migration instructions; tests for constraints and migration behavior.
+- **Branch gate:** Integrate the verified `feature/native-windows-foundation` work into `develop` through the established review workflow, verify the resulting `develop`, then create `feature/database-foundation` from that updated `develop`. Do not create the database branch before integration and verification.
+- **Verification and completion criteria:** Approved documentation amendments and complete column contract precede mappings/migrations. Define exact `ACTIVE`/`ARCHIVED` and `OPEN`/`CLOSED` transitions before API implementation. Migrations apply to a clean MySQL 8.4 database and upgrade path; key ownership, currency and financial constraints are tested; fixtures contain only synthetic data.
 
 ## Phase 3 — Backend architecture
 

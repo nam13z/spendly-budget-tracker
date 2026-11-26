@@ -58,7 +58,7 @@ Do not interpret every idea in this pack as an MVP feature. Build the smallest c
 4. Expected income is not received money.
 5. A budget is a plan/limit, not an account balance.
 6. Safe-to-Spend is a derived estimate with a visible explanation, not a bank balance or guarantee.
-7. Original transaction currency and amount are immutable historical facts unless the user explicitly edits the transaction.
+7. Posted transaction currency and amount are preserved as historical facts; corrections atomically void the original and create a linked replacement. A real refund is a separate posted event.
 8. Financial arithmetic uses decimal-safe representations, never binary floating point.
 9. Every household and personal record is protected by server-side authorization.
 10. AI may explain verified calculations; it must not invent or independently calculate financial facts.

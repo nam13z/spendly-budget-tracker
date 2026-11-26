@@ -5,10 +5,10 @@ This document is authoritative for financial behavior. If UI, API or agent assum
 ## 1. Money representation
 
 - Backend: Python `Decimal`.
-- Database: `DECIMAL(19,4)` baseline, subject to currency/scale validation.
+- Database: MySQL `DECIMAL(19,4)` for every monetary amount; SQLAlchemy `Numeric(19, 4, asdecimal=True)`.
 - API: monetary amounts transmitted as decimal strings, e.g. `"1250.50"`.
 - Frontend: decimal-safe library or string arithmetic; never authoritative JS floating-point arithmetic.
-- Rounding: explicit currency-aware rounding mode at defined boundaries.
+- LKR and USD use `minor_unit_digits = 2`. Validate input and posted amounts against currency metadata and reject excess fractional digits; do not silently round. Storage scale is separate from display precision, which follows currency metadata. Currencies requiring more than four fractional digits need a reviewed storage change. FX rate precision is a separate future technical decision.
 - Store currency code with every amount.
 
 ## 2. Separate the concepts
@@ -31,7 +31,7 @@ For a given account and currency, a basic posted balance is:
 
 Exact sign and refund semantics must be encoded in one tested ledger service. A refund should reverse or offset the original expense according to explicit policy, not be misclassified as ordinary salary income.
 
-Voided transactions do not affect balances. Editing a posted transaction must atomically update the authoritative record and any derived views.
+Voided transactions do not affect balances. Correction atomically marks the posted original `VOIDED` and creates a posted replacement linked by unique `replaces_transaction_id`. Original entries and allocations remain unchanged for audit and are excluded from balances/current reporting. Do not add reversing entries. A voided transaction cannot be edited or reposted. A real refund is a separate posted `REFUND` linked to its original with `original_transaction_id`.
 
 ## 4. Transaction allocation
 
@@ -66,6 +66,7 @@ For same-currency transfer:
 - consolidated net worth/cash total is unchanged, ignoring fees.
 
 For cross-currency transfer:
+- Deferred: this workflow is not available in the initial release.
 - store source amount/currency and destination amount/currency;
 - store applied rate, fee and date;
 - do not fabricate a rate;
@@ -73,7 +74,7 @@ For cross-currency transfer:
 
 ## 6. Refunds
 
-A refund should link to the original transaction when possible. Support partial refunds. Prevent refunded amount from exceeding refundable amount unless an explicit correction workflow exists. Display net category spending consistently.
+A refund is a separate posted `REFUND` transaction, not a correction. Link it to the original expense and explicitly to the allocation rows it reverses. Support partial refunds and prevent refunded amount from exceeding the refundable amount using transactional validation. Do not infer proportional allocation.
 
 ## 7. Budgets
 
@@ -82,7 +83,7 @@ Budget remaining is not account balance.
 `budget remaining = planned allocation - eligible posted spending in the budget period`
 
 Rules:
-- define period boundaries in user's timezone;
+- calculate periods in the relevant personal or household space timezone using local calendar boundaries; start is inclusive and end is exclusive; store event timestamps in UTC;
 - include only transactions in the relevant scope and category;
 - use allocations for space-specific spending;
 - avoid counting transfers as spending;
