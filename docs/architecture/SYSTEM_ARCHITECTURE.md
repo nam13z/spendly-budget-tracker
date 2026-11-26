@@ -133,7 +133,7 @@ Do not promise full offline synchronization in MVP.
 
 ## 11. Environments
 
-- Local: Docker Compose, seeded fake data.
+- Local development: GitHub Codespaces with a Linux Dev Container; Next.js and FastAPI run in the workspace container, while MySQL 8.4 runs on a private Compose network with no published port. See `docs/engineering/CODESPACES.md`.
 - Test: isolated database, deterministic tests.
 - Staging: production-like configuration, synthetic data.
 - Production: managed database, TLS, backups, least privilege, monitoring.

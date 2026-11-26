@@ -89,7 +89,7 @@ Never return stack traces or internal SQL errors to clients.
 - `GET /transactions`
 - `POST /transactions`
 - `GET /transactions/{transaction_id}`
-- `PATCH /transactions/{transaction_id}`
+- `PATCH /transactions/{transaction_id}` — correcting a posted transaction atomically voids the original and creates/returns a posted replacement; voided records cannot be edited or reposted.
 - `POST /transactions/{transaction_id}/void`
 - `POST /transfers`
 - `POST /transactions/{transaction_id}/refunds`
@@ -145,6 +145,12 @@ Header: `Idempotency-Key: <random-unique-key>`
 
 The server validates account access, currency compatibility, allocation sum, category access and space permissions before commit.
 
+Transactions default to private. Sharing is creator-controlled; a shared transaction requires a Home allocation, and mixed Home/Personal allocations require explicit creator consent. Household transaction responses use a purpose-built projection containing only transaction ID, Home allocation amount and currency, transaction date in the Home space timezone, description, and category display name. They omit transaction total, account identifiers/names/types/balances, personal allocations, beneficiary/private fields, notes, and unrelated personal history.
+
+Personal spaces remain private; household spaces are visible to active members. Any allocation change clears mixed-allocation consent and atomically returns the transaction to `PRIVATE`; the creator must consent again before sharing. New accounts default to `include_in_safe_to_spend = FALSE`. Space creation uses the owner's or household's chosen IANA timezone; each period snapshots it, and existing periods retain their original dates and timezone. Reusable records use `ACTIVE`/`ARCHIVED`; budget periods use `OPEN`/`CLOSED`, with exact transition rules defined before API implementation. Household invitations grant `MEMBER` only; ownership transfer is separate. Sound defaults off; reduced motion initializes from the platform preference and permits explicit user override. An income occurrence accepts multiple partial receipts; each receipt links to one transaction, each transaction links to at most one occurrence, and cumulative overpayment is rejected until an adjustment policy is approved.
+
+The `/void` endpoint must not create a standalone posted void. Posted corrections atomically void the original and create a posted replacement; any endpoint performing that operation must require both effects in one database transaction.
+
 ## 5. Example response
 
 ```json
@@ -185,6 +191,7 @@ Suggested codes:
 - Never trust user/household IDs supplied by client without authorization checks.
 - Use consistent pagination and filtering.
 - Avoid returning unnecessary personal data.
+- Apply the household projection allowlist to every household transaction response; never serialize the full transaction ORM object to household members.
 - Use optimistic concurrency or version checks for sensitive edits where appropriate.
 - Document all endpoints in OpenAPI.
 - Add contract tests for financial endpoints.

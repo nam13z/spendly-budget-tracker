@@ -2,12 +2,7 @@
 
 ## 1. Local development
 
-Use Docker Compose for MySQL and optionally backend services. Provide:
-- `.env.example` with placeholder values only;
-- migrations command;
-- synthetic seed command;
-- health checks;
-- one documented startup command.
+Codespaces local development is documented in [CODESPACES.md](CODESPACES.md). Deployment and production procedures below apply to deployed environments and do not define local prerequisites.
 
 ## 2. Environments
 
