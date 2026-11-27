@@ -32,6 +32,10 @@ Errors use a stable structure:
 ```
 
 Never return stack traces or internal SQL errors to clients.
+All API errors include an opaque `request_id` and matching `X-Request-ID` response header.
+Validation `details` may identify field locations and error codes, but must not include rejected
+input values or internal exception messages. Unhandled errors return a generic message; internal
+exception text and stack traces are not returned or logged.
 
 ## 3. Endpoint inventory
 

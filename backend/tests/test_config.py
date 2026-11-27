@@ -55,3 +55,9 @@ def test_sqlalchemy_url_escapes_credentials() -> None:
     assert settings.sqlalchemy_url.password == "local@secret"
     assert settings.sqlalchemy_url.port == 3307
     assert settings.sqlalchemy_url.render_as_string(hide_password=True).find("***") >= 0
+
+
+def test_shared_settings_fixture_uses_isolated_test_configuration(settings: Settings) -> None:
+    assert settings.app_env == "test"
+    assert settings.db_name == "spendly_test"
+    assert "synthetic-test-password" not in str(settings)
